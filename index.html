@@ -630,7 +630,81 @@
     .empty svg { color: var(--t3); margin-bottom: 12px; }
     .empty-title { font-size: 14px; font-weight: 600; color: var(--t2); }
     .empty-sub   { font-size: 12px; color: var(--t3); margin-top: 4px; }
+
+    /* ════════════════ CHANNEL SCROLL CARDS ════════════════ */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .ch-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-lg);
+      width: 175px;
+      flex-shrink: 0;
+      box-shadow: var(--sh-sm);
+      overflow: hidden;
+    }
+    .ch-card-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 12px 10px;
+    }
+    .ch-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--t1);
+    }
+    .ch-toggle-wrap {
+      display: flex;
+      background: #F2F2F6;
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .ch-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 26px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--t3);
+      cursor: pointer;
+      transition: background 130ms ease, color 130ms ease;
+      flex-shrink: 0;
+    }
+    .ch-toggle-btn.active-dollar { background: #2D2D2D; color: #fff; }
+    .ch-toggle-btn.active-pct    { background: var(--primary); color: #fff; }
+
+    .ch-table { width: 100%; border-collapse: collapse; }
+    .ch-table thead th {
+      font-size: 10px; font-weight: 600; color: var(--t3);
+      text-transform: uppercase; letter-spacing: 0.4px;
+      padding: 0 12px 7px; text-align: left;
+      border-bottom: 1px solid var(--divider);
+    }
+    .ch-table thead th:last-child { text-align: right; }
+    .ch-table tbody td {
+      padding: 9px 12px; font-size: 12px; color: var(--t2);
+      border-bottom: 1px solid var(--divider);
+    }
+    .ch-table tbody tr:last-child td { border-bottom: none; }
+    .ch-table tbody td:first-child {
+      font-weight: 500; color: var(--t1);
+      max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .ch-table tbody td.ch-qty { font-variant-numeric: tabular-nums; }
+    .ch-table tbody td.ch-val {
+      text-align: right; font-weight: 600; color: var(--t1);
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
   </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { corePlugins: { preflight: false } }</script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -889,27 +963,10 @@
         <div class="card" id="card-channel">
           <div class="card-hd">
             <span class="card-title">Sales by Channel</span>
-            <button class="collapse-btn" onclick="toggleCard('card-channel')" aria-label="Toggle">
-              <svg class="collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
           </div>
-          <div class="collapsible">
-            <div class="bar-item">
-              <div class="bar-row"><span class="bar-label">Dine In</span><div class="bar-meta"><span class="bar-pct">60%</span><span class="bar-amount">$5,587</span></div></div>
-              <div class="bar-track"><div class="bar-fill c0" style="width:60%"></div></div>
-            </div>
-            <div class="bar-item">
-              <div class="bar-row"><span class="bar-label">Takeaway</span><div class="bar-meta"><span class="bar-pct">25%</span><span class="bar-amount">$2,328</span></div></div>
-              <div class="bar-track"><div class="bar-fill c2" style="width:25%"></div></div>
-            </div>
-            <div class="bar-item">
-              <div class="bar-row"><span class="bar-label">Delivery</span><div class="bar-meta"><span class="bar-pct">10%</span><span class="bar-amount">$931</span></div></div>
-              <div class="bar-track"><div class="bar-fill c4" style="width:10%"></div></div>
-            </div>
-            <div class="bar-item">
-              <div class="bar-row"><span class="bar-label">Others</span><div class="bar-meta"><span class="bar-pct">5%</span><span class="bar-amount">$466</span></div></div>
-              <div class="bar-track"><div class="bar-fill c3" style="width:5%"></div></div>
-            </div>
+          <!-- Horizontally scrollable channel cards -->
+          <div class="no-scrollbar" style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding:14px 0 16px;">
+            <div id="channelCardsInner" style="display:flex;gap:10px;padding:0 16px;width:max-content;"></div>
           </div>
         </div>
 
@@ -1461,11 +1518,119 @@ function goPage(p) {
 }
 
 /* ════════════════════════════════════════════════
+   CHANNEL CARDS
+════════════════════════════════════════════════ */
+const CHANNEL_DATA = [
+  {
+    title: 'All Channel',
+    rows: [
+      { name: 'Food and',       qty: 52, dollar: '$4,190', pct: '22.32 %' },
+      { name: 'Beauty and',     qty: 45, dollar: '$3,580', pct: '19.31 %' },
+      { name: 'Coffee',         qty: 37, dollar: '$2,943', pct: '15.88 %' },
+      { name: 'Home supplies',  qty: 30, dollar: '$2,387', pct: '12.88 %' },
+      { name: 'Iced Coffee',    qty: 23, dollar: '$1,829', pct: '9.87 %'  },
+    ]
+  },
+  {
+    title: 'Dine In',
+    rows: [
+      { name: 'Food and',       qty: 31, dollar: '$2,514', pct: '26.40 %' },
+      { name: 'Coffee',         qty: 22, dollar: '$1,750', pct: '18.37 %' },
+      { name: 'Iced Coffee',    qty: 18, dollar: '$1,432', pct: '15.04 %' },
+      { name: 'Hot drinks',     qty: 14, dollar: '$1,113', pct: '11.69 %' },
+      { name: 'Home supplies',  qty: 11, dollar: '$875',   pct: '9.19 %'  },
+    ]
+  },
+  {
+    title: 'Takeaway',
+    rows: [
+      { name: 'Beauty and',     qty: 20, dollar: '$1,592', pct: '24.80 %' },
+      { name: 'Food and',       qty: 16, dollar: '$1,274', pct: '19.85 %' },
+      { name: 'Coffee',         qty: 12, dollar: '$954',   pct: '14.87 %' },
+      { name: 'Iced Coffee',    qty: 9,  dollar: '$716',   pct: '11.15 %' },
+      { name: 'Home supplies',  qty: 7,  dollar: '$557',   pct: '8.68 %'  },
+    ]
+  },
+  {
+    title: 'Delivery',
+    rows: [
+      { name: 'Food and',       qty: 8,  dollar: '$637',   pct: '28.10 %' },
+      { name: 'Beauty and',     qty: 6,  dollar: '$477',   pct: '21.05 %' },
+      { name: 'Iced Coffee',    qty: 5,  dollar: '$398',   pct: '17.55 %' },
+      { name: 'Coffee',         qty: 4,  dollar: '$318',   pct: '14.03 %' },
+      { name: 'Home supplies',  qty: 3,  dollar: '$239',   pct: '10.55 %' },
+    ]
+  },
+];
+
+// Track active mode per card: 'dollar' or 'pct'
+const chMode = {};
+
+function renderChannelCards() {
+  const inner = document.getElementById('channelCardsInner');
+  if (!inner) return;
+
+  inner.innerHTML = CHANNEL_DATA.map((ch, ci) => {
+    const mode = chMode[ci] || 'dollar';
+    const rows = ch.rows.map(r => `
+      <tr>
+        <td>${r.name}</td>
+        <td class="ch-qty">${r.qty}</td>
+        <td class="ch-val">${mode === 'dollar' ? r.dollar : r.pct}</td>
+      </tr>`).join('');
+
+    // Column header label changes with mode
+    const valHeader = mode === 'dollar' ? 'Amount' : 'Percentage';
+
+    return `
+      <div class="ch-card">
+        <div class="ch-card-hd">
+          <span class="ch-card-title">${ch.title}</span>
+          <div class="ch-toggle-wrap">
+            <button class="ch-toggle-btn ${mode === 'dollar' ? 'active-dollar' : ''}"
+                    onclick="setChMode(${ci},'dollar')" aria-label="Show dollar amount">
+              <!-- lucide dollar-sign via inline SVG (Lucide not yet parsed, so inline) -->
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+              </svg>
+            </button>
+            <button class="ch-toggle-btn ${mode === 'pct' ? 'active-pct' : ''}"
+                    onclick="setChMode(${ci},'pct')" aria-label="Show percentage">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="5" x2="5" y2="19"/>
+                <circle cx="6.5" cy="6.5" r="2.5"/>
+                <circle cx="17.5" cy="17.5" r="2.5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <table class="ch-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Qty</th>
+              <th>${valHeader}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+}
+
+function setChMode(cardIdx, mode) {
+  chMode[cardIdx] = mode;
+  renderChannelCards();
+}
+
+/* ════════════════════════════════════════════════
    INIT
 ════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   buildChart();
   renderTxns();
+  renderChannelCards();
 });
 </script>
 </body>
